@@ -2,7 +2,6 @@ import base64
 import datetime
 import json
 from pathlib import Path
-from pprint import pprint
 
 from tqdm import tqdm
 
@@ -123,7 +122,12 @@ def get_msg_body(msg: dict) -> str:
         NotImplementedError(f"[payload] mimeType {payload_mimeType} not implemented")
 
 
-def export_email_content(out_dir: Path, sender: str, prefix: str = ""):
+def export_email_content(
+    out_dir: Path,
+    sender: str,
+    prefix: str = "",
+    use_cache: bool = True,
+):
     service = get_gmail_service(
         scope_name="readonly",
         credentials_filepath="credentials.json",
@@ -135,28 +139,12 @@ def export_email_content(out_dir: Path, sender: str, prefix: str = ""):
     print(f"Total number of '{sender}' messages: {len(msg_ids)}")
 
     for msg_id in tqdm(msg_ids):
+        save_path = out_dir / f"{prefix}{msg_id}.json"
+        if use_cache and save_path.exists():
+            continue
         msg = GetMessage(service, user_id="me", msg_id=msg_id)
         decoded_body = get_msg_body(msg)
         data = get_msg_metadata(msg)
         data["body"] = decoded_body
-        save_path = out_dir / f"{prefix}{msg_id}.json"
         with save_path.open("w") as f:
             json.dump(data, f, indent=4)
-
-
-def main():
-    OUTPUT_DIR = Path("output")
-
-    ### PayLah
-    paylah_dir = OUTPUT_DIR / "paylah"
-    paylah_dir.mkdir(exist_ok=True, parents=True)
-    export_email_content(out_dir=paylah_dir, sender="paylah.alert@dbs.com")
-
-    ### Fave
-    fave_dir = OUTPUT_DIR / "fave"
-    fave_dir.mkdir(exist_ok=True, parents=True)
-    export_email_content(out_dir=fave_dir, sender="hi@myfave.com")
-
-
-if __name__ == "__main__":
-    main()

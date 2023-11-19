@@ -1,8 +1,8 @@
 import csv
 import json
 import os
-from re import compile
 from pathlib import Path
+from re import compile
 
 from bs4 import BeautifulSoup
 
@@ -48,7 +48,10 @@ def parse_paylah_html(html_str: str) -> dict:
     # strip away 'SGD' from txn_amount
     data_dict["txn_amount"] = data_dict["txn_amount"][3:]
     # strip away date from txn_time
-    # data_dict["txn_time"] = data_dict["txn_time"][6:12].strip()
+    data_dict["txn_time"] = data_dict["txn_time"][6:12].strip()
+    # simplify txn_from
+    if "0920" in data_dict["txn_from"]:
+        data_dict["txn_from"] = "me"
     return data_dict
 
 
