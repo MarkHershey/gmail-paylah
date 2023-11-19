@@ -1,13 +1,15 @@
+import csv
 import json
+import os
 from re import compile
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
 
-def parse_paylah_html(html_path: str) -> dict:
-    with open(html_path, "r") as f:
-        html = f.read()
-    soup = BeautifulSoup(html, "html.parser")
+def parse_paylah_html(html_str: str) -> dict:
+    # make soup
+    soup = BeautifulSoup(html_str, "html.parser")
 
     data_dict = {}
 
@@ -18,7 +20,7 @@ def parse_paylah_html(html_path: str) -> dict:
         txn_id = txn_id.split(":")[1].strip()
     else:
         txn_id = "NA"
-    data_dict["type"] = "PayLah"
+    data_dict["txn_type"] = "PayLah"
     data_dict["txn_id"] = txn_id
 
     ### Find the main data table
@@ -36,7 +38,6 @@ def parse_paylah_html(html_path: str) -> dict:
     if len(content_str_lst) != 8:
         # print(f"Expected 8 td tags, got {len(content_str_lst)}")
         # print(content_str_lst)
-        print(f"Skipping '{html_path}' (likely not a transaction email)")
         return None
 
     data_dict["txn_time"] = content_str_lst[1]
@@ -44,22 +45,62 @@ def parse_paylah_html(html_path: str) -> dict:
     data_dict["txn_from"] = content_str_lst[5]
     data_dict["txn_to"] = content_str_lst[7]
 
+    # strip away 'SGD' from txn_amount
+    data_dict["txn_amount"] = data_dict["txn_amount"][3:]
+    # strip away date from txn_time
+    # data_dict["txn_time"] = data_dict["txn_time"][6:12].strip()
     return data_dict
 
 
-if __name__ == "__main__":
-    import os
-
-    paylah_dir = "output/paylah"
+def main(output_dir="output"):
+    output_dir = Path(output_dir)
+    paylah_dir = output_dir / "paylah"
     paylah_files = os.listdir(paylah_dir)
-    paylah_files = [os.path.join(paylah_dir, i) for i in paylah_files]
+    paylah_files = [paylah_dir / i for i in paylah_files]
 
     all_data_dicts = []
     for paylah_file in paylah_files:
-        data_dict = parse_paylah_html(paylah_file)
-        if data_dict:
-            all_data_dicts.append(data_dict)
+        with open(paylah_file, "r") as f:
+            email_data = json.load(f)
 
-    with open("master_paylah.json", "w") as f:
+        paylah_html = email_data.get("body")
+        if email_data["subject"] != "Transaction Alerts":
+            print(f"Skipping '{paylah_file}' (likely not a transaction email)")
+            continue
+
+        data_dict = parse_paylah_html(paylah_html)
+        if not data_dict:
+            print(f"Skipping '{paylah_file}' (likely not a transaction email)")
+            continue
+
+        date_str = email_data["date"]
+        data_dict["txn_date"] = date_str
+        all_data_dicts.append(data_dict)
+
+    # sort by date
+    all_data_dicts.sort(key=lambda x: x["txn_date"])
+
+    out_json = output_dir / "master_paylah.json"
+    with out_json.open("w") as f:
         json.dump(all_data_dicts, f, indent=4)
         print(f"Saved {len(all_data_dicts)} transactions to master_paylah.json")
+
+    out_csv = output_dir / "master_paylah.csv"
+    with out_csv.open("w") as f:
+        fieldnames = [
+            "txn_type",
+            "txn_id",
+            "txn_date",
+            "txn_time",
+            "txn_amount",
+            "txn_from",
+            "txn_to",
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(all_data_dicts)
+        print(f"Saved {len(all_data_dicts)} transactions to master_paylah.csv")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,8 @@
 import base64
+import datetime
+import json
 from pathlib import Path
+from pprint import pprint
 
 from tqdm import tqdm
 
@@ -52,24 +55,75 @@ def decode_message_part(data):
     return byte_str.decode("utf-8")
 
 
-def parse_msg(msg: dict) -> str:
+def get_msg_metadata(msg: dict) -> dict:
+    """
+    Return a dictionary of metadata from a message
+
+    Args:
+        msg: a msg object returned by the Gmail API
+
+    Returns:
+        A dictionary of metadata
+    """
+    metadata = dict()
+    metadata["id"] = msg["id"]
+    metadata["threadId"] = msg["threadId"]
+    metadata["labelIds"] = msg["labelIds"]
+
+    # Unix timestamp in milliseconds
+    timestamp = msg["internalDate"]
+    # Convert Unix timestamp to datetime object
+    datetime_obj = datetime.datetime.fromtimestamp(int(timestamp) / 1000)
+    # Convert datetime object to date object
+    date_obj = datetime_obj.date()
+    # get datetime string
+    datetime_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
+    metadata["datetime"] = datetime_str
+    # get date string
+    date_str = date_obj.strftime("%Y-%m-%d")
+    metadata["date"] = date_str
+
+    headers = msg["payload"]["headers"]
+    for header in headers:
+        if header["name"] == "From":
+            metadata["from"] = header["value"]
+        elif header["name"] == "To":
+            metadata["to"] = header["value"]
+        elif header["name"] == "Subject":
+            metadata["subject"] = header["value"]
+
+    return metadata
+
+
+def get_msg_body(msg: dict) -> str:
     """
     msg is a dictionary
     Top-level keys: ['id', 'threadId', 'labelIds', 'snippet', 'payload', 'sizeEstimate', 'historyId', 'internalDate']
     """
-    parts = msg["payload"]["parts"]
-    decoded_parts = []
-    for part in parts:
-        if part["mimeType"] in ("text/html", "text/plain"):
-            data = part["body"]["data"]
-            decoded_parts.append(decode_message_part(data))
-        else:
-            NotImplementedError(f"mimeType {part['mimeType']} not implemented")
+    payload = msg["payload"]
+    payload_mimeType = payload["mimeType"]
 
-    return "\n".join(decoded_parts)
+    if payload_mimeType in ("text/html", "text/plain"):
+        data = payload["body"]["data"]
+        decoded_body = decode_message_part(data)
+        return decoded_body
+    elif payload_mimeType == "multipart/mixed":
+        parts = msg["payload"]["parts"]
+        decoded_parts = []
+        for part in parts:
+            if part["mimeType"] in ("text/html", "text/plain"):
+                data = part["body"]["data"]
+                decoded_parts.append(decode_message_part(data))
+            else:
+                NotImplementedError(
+                    f"[multipart] mimeType {part['mimeType']} not implemented"
+                )
+        return "\n".join(decoded_parts)
+    else:
+        NotImplementedError(f"[payload] mimeType {payload_mimeType} not implemented")
 
 
-def export_email_content(out_dir: Path, sender: str):
+def export_email_content(out_dir: Path, sender: str, prefix: str = ""):
     service = get_gmail_service(
         scope_name="readonly",
         credentials_filepath="credentials.json",
@@ -82,17 +136,26 @@ def export_email_content(out_dir: Path, sender: str):
 
     for msg_id in tqdm(msg_ids):
         msg = GetMessage(service, user_id="me", msg_id=msg_id)
-        decoded_body = parse_msg(msg)
-        save_path = out_dir / f"{msg_id}.html"
+        decoded_body = get_msg_body(msg)
+        data = get_msg_metadata(msg)
+        data["body"] = decoded_body
+        save_path = out_dir / f"{prefix}{msg_id}.json"
         with save_path.open("w") as f:
-            f.write(decoded_body)
+            json.dump(data, f, indent=4)
 
 
 def main():
     OUTPUT_DIR = Path("output")
+
+    ### PayLah
     paylah_dir = OUTPUT_DIR / "paylah"
     paylah_dir.mkdir(exist_ok=True, parents=True)
     export_email_content(out_dir=paylah_dir, sender="paylah.alert@dbs.com")
+
+    ### Fave
+    fave_dir = OUTPUT_DIR / "fave"
+    fave_dir.mkdir(exist_ok=True, parents=True)
+    export_email_content(out_dir=fave_dir, sender="hi@myfave.com")
 
 
 if __name__ == "__main__":
