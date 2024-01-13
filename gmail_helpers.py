@@ -290,4 +290,4 @@ def GetMimeMessage(service, user_id, msg_id):
 
 
 if __name__ == "__main__":
-    get_gmail_service()
+    get_gmail_service(force_new_token=True)

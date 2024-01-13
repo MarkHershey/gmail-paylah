@@ -128,12 +128,18 @@ def export_email_content(
     prefix: str = "",
     use_cache: bool = True,
 ):
-    service = get_gmail_service(
-        scope_name="readonly",
-        credentials_filepath="credentials.json",
-        credentials_token_filepath="token.json",
-        force_new_token=False,
-    )
+    try:
+        service = get_gmail_service(
+            scope_name="readonly",
+            credentials_filepath="credentials.json",
+            credentials_token_filepath="token.json",
+            force_new_token=False,
+        )
+    except Exception as e:
+        print(e)
+        if Path("token.json").exists():
+            print("Try deleting outdated token.json and try again.")
+        return
 
     msg_ids = all_msg_ids_from_sender(service=service, sender=sender)
     print(f"Total number of '{sender}' messages: {len(msg_ids)}")
