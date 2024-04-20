@@ -3,3 +3,6 @@ google-auth-httplib2
 google-auth-oauthlib
 beautifulsoup4
 tqdm
+rich
+lxml
+matplotlib
