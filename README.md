@@ -1,6 +1,18 @@
 # gmail-paylah
 
-This is a Python utility to export emails from Gmail, parse emails from DBS PayLah! (Singapore) / Fave (Singapore), and extract the transaction details. Extracted details are then written to a CSV/JSON file.
+This is a Python utility to
+
+1. Export emails from **Gmail**
+2. Parse emails from
+    - **DBS PayLah!** (Singapore)
+    - **Fave** (Singapore)
+    - **Grab** (Singapore)
+3. Extract the transaction details and save to a CSV/JSON file.
+
+## Assumptions
+
+1. Your DBS PayLah! / Fave / Grab account is linked to your Gmail account. Usually, you will receive an email receipt for each transaction.
+2. You are able to enable the Gmail API on your Google account. (Instructions below)
 
 ## Usage
 
@@ -13,7 +25,7 @@ Follow the instructions [here](https://developers.google.com/gmail/api/quickstar
 -   Authorize credentials for a desktop application
 -   Download the credentials file and save it as `credentials.json` at the root of this project.
 
-During the steps above, you may need to fill in the scopes for the Gmail API. The only scope required by this project is:
+During the steps above, you may need to fill in the scopes for the Gmail API. Due to the nature of the project, the script only requires read-only access to your Gmail account. The only scope required by this project is:
 
 | Scope                                            | Description                                                |
 | ------------------------------------------------ | ---------------------------------------------------------- |
@@ -37,3 +49,23 @@ python main.py
 ```
 
 The default outputs are located in the `output` folder.
+
+### Step 4: Further analysis
+
+You can further analyze the CSV/JSON files using Excel, Google Sheets, or write your own Python scripts.
+
+Example code to analyze the Grab transactions:
+
+```bash
+python analyze_grab.py
+```
+
+Example code to analyze the PayLah! transactions:
+
+```bash
+python analyze_paylah.py
+```
+
+## Disclaimer
+
+Understand the script before running it. Use at your own risk.
