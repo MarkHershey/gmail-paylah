@@ -107,22 +107,41 @@ def get_msg_body(msg: dict) -> str:
         decoded_body = decode_message_part(data)
         return decoded_body
     elif payload_mimeType in ("multipart/mixed", "multipart/alternative"):
-        parts = msg["payload"]["parts"]
-        decoded_parts = []
-        for part in parts:
-            if part["mimeType"] in ("text/html", "text/plain"):
-                data = part["body"]["data"]
-                _decoded_part = decode_message_part(data)
-                decoded_parts.append(_decoded_part)
-            else:
-                raise NotImplementedError(
-                    f"[multipart] mimeType {part['mimeType']} not implemented"
-                )
-        return "\n".join(decoded_parts)
+        # parts = msg["payload"]["parts"]
+        # decoded_parts = []
+        # for part in parts:
+        #     if part["mimeType"] in ("text/html", "text/plain"):
+        #         data = part["body"]["data"]
+        #         _decoded_part = decode_message_part(data)
+        #         decoded_parts.append(_decoded_part)
+        #     else:
+        #         raise NotImplementedError(
+        #             f"[multipart] mimeType {part['mimeType']} not implemented"
+        #         )
+        # return "\n".join(decoded_parts)
+
+        # above old one-layer implementation is replaced by the following recursive function
+        return get_multipart_payload(parts=payload["parts"])
     else:
         raise NotImplementedError(
             f"[payload] mimeType {payload_mimeType} not implemented"
         )
+
+
+def get_multipart_payload(parts: list) -> str:
+    """
+    Recursively decode the parts of a multipart message
+    """
+    decoded_parts = []
+    for part in parts:
+        if "parts" in part:
+            _decoded_part = get_multipart_payload(part["parts"])
+            decoded_parts.append(_decoded_part)
+        else:
+            data = part["body"]["data"]
+            _decoded_part = decode_message_part(data)
+            decoded_parts.append(_decoded_part)
+    return "\n".join(decoded_parts)
 
 
 def save_raw_message(msg: dict, save_path: Path):

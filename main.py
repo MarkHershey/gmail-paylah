@@ -2,10 +2,13 @@ from pathlib import Path
 
 from gmail_export import export_email_content
 from parser_fave import main as parse_fave
+from parser_grab import main as parse_grab
 from parser_paylah import main as parse_paylah
 
+OUTPUT_DIR = Path("output")
 
-def paylah_main(output_dir: Path):
+
+def paylah_main(output_dir: Path = OUTPUT_DIR):
     ### Export PayLah Emails
     paylah_dir = output_dir / "paylah"
     paylah_dir.mkdir(exist_ok=True, parents=True)
@@ -18,7 +21,7 @@ def paylah_main(output_dir: Path):
     parse_paylah(output_dir=output_dir)
 
 
-def fave_main(output_dir: Path):
+def fave_main(output_dir: Path = OUTPUT_DIR):
     ### Export Fave Emails
     fave_dir = output_dir / "fave"
     fave_dir.mkdir(exist_ok=True, parents=True)
@@ -31,7 +34,7 @@ def fave_main(output_dir: Path):
     parse_fave(output_dir=output_dir)
 
 
-def grab_main(output_dir: Path):
+def grab_main(output_dir: Path = OUTPUT_DIR):
     ### Export Grab Emails
     grab_dir = output_dir / "grab"
     grab_dir.mkdir(exist_ok=True, parents=True)
@@ -40,8 +43,11 @@ def grab_main(output_dir: Path):
         sender="no-reply@grab.com",
         use_cache=True,
     )
+    ### Parse All Grab Emails
+    parse_grab(output_dir=output_dir)
 
 
 if __name__ == "__main__":
-    OUTPUT_DIR = Path("output")
-    grab_main(output_dir=OUTPUT_DIR)
+    fave_main()
+    paylah_main()
+    grab_main()

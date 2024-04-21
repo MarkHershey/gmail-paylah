@@ -41,13 +41,13 @@ def fix_grab(output_dir: Path):
         subject = data.get("subject", "")
 
         is_receipt = "e-receipt" in subject.lower()
-        has_body = body is not None
 
         # if is_receipt:
         #     print(f"{_date}: {has_body} {subject} {_id}")
 
-        if is_receipt and not has_body:
+        if is_receipt and not body:
             to_be_fixed.append(data)
+            print(f"{_date}: {subject} {_id}")
 
     print(f"Found {len(to_be_fixed)} emails to be fixed")
 

@@ -59,7 +59,7 @@ def main(output_dir="output"):
     output_dir = Path(output_dir)
     paylah_dir = output_dir / "paylah"
     paylah_files = os.listdir(paylah_dir)
-    paylah_files = [paylah_dir / i for i in paylah_files]
+    paylah_files = [paylah_dir / i for i in paylah_files if i.endswith(".json")]
 
     all_data_dicts = []
     for paylah_file in paylah_files:

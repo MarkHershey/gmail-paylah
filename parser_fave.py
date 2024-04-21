@@ -66,7 +66,7 @@ def main(output_dir="output"):
     output_dir = Path(output_dir)
     fave_dir = output_dir / "fave"
     fave_files = os.listdir(fave_dir)
-    fave_files = [fave_dir / i for i in fave_files]
+    fave_files = [fave_dir / i for i in fave_files if i.endswith(".json")]
 
     all_data_dicts = []
     for fave_file in fave_files:
