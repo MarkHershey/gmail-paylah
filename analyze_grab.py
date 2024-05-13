@@ -49,6 +49,42 @@ def plot_monthly_spending(file_path):
     plt.show()
 
 
+def plot_stacked_monthly_spending(file_path):
+    # Open the CSV file and read data into a list of dictionaries
+    with open(file_path, newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+        transactions = list(reader)
+
+    # Process data
+    monthly_spend = defaultdict(lambda: defaultdict(float))
+    for txn in transactions:
+        if txn["txn_date"]:  # Check if date exists
+            year_month = txn["txn_date"][:7]  # Extract Year-Month
+            txn_type = txn["txn_type"]
+            amount = float(txn["txn_amount"])
+            monthly_spend[year_month][txn_type] += amount
+
+    # Prepare data for plotting
+    months = sorted(monthly_spend.keys())
+    transport_spends = [
+        monthly_spend[month].get("Grab Transport", 0) for month in months
+    ]
+    food_spends = [monthly_spend[month].get("Grab Food", 0) for month in months]
+
+    # Plotting
+    fig, ax = plt.subplots()
+    ax.bar(months, transport_spends, label="Grab Transport")
+    ax.bar(months, food_spends, bottom=transport_spends, label="Grab Food")
+
+    ax.set_ylabel("Total Amount Spent")
+    ax.set_title("Monthly Spending on Grab Transport vs Grab Food")
+    ax.legend()
+
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_and_save_spending_charts(file_path):
     OUT_DIR.mkdir(exist_ok=True)  # Create the directory if it does not exist
 
@@ -118,5 +154,5 @@ def plot_and_save_spending_charts(file_path):
 
 
 if __name__ == "__main__":
-    # plot_monthly_spending(MASTER_GRAB_CSV)
-    plot_and_save_spending_charts(MASTER_GRAB_CSV)
+    plot_stacked_monthly_spending(MASTER_GRAB_CSV)
+    # plot_and_save_spending_charts(MASTER_GRAB_CSV)

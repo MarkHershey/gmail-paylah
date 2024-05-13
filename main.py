@@ -48,6 +48,6 @@ def grab_main(output_dir: Path = OUTPUT_DIR):
 
 
 if __name__ == "__main__":
-    fave_main()
-    paylah_main()
+    # fave_main()
+    # paylah_main()
     grab_main()
