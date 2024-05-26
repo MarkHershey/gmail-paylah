@@ -4,6 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from rich import print
 
 MASTER_GRAB_CSV = "output/master_grab.csv"
 OUT_DIR = Path("output")
@@ -95,12 +96,19 @@ def plot_and_save_spending_charts(file_path):
 
     # Process data
     monthly_spend = defaultdict(lambda: defaultdict(float))
+    monthly_transport_times = defaultdict(int)
+    monthly_food_times = defaultdict(int)
+
     for txn in transactions:
         if txn["txn_date"]:  # Check if date exists
             year_month = txn["txn_date"][:7]  # Extract Year-Month
             txn_type = txn["txn_type"]
             amount = float(txn["txn_amount"])
             monthly_spend[year_month][txn_type] += amount
+            if txn_type == "Grab Transport":
+                monthly_transport_times[year_month] += 1
+            elif txn_type == "Grab Food":
+                monthly_food_times[year_month] += 1
 
     # Prepare data for plotting
     months = sorted(monthly_spend.keys())
@@ -109,13 +117,30 @@ def plot_and_save_spending_charts(file_path):
     ]
     food_spends = [monthly_spend[month].get("Grab Food", 0) for month in months]
 
-    # Plotting for Grab Transport
+    ###########################################################################
+    ### Analysis for Grab Transport
+
+    for month in months[-6:]:
+        _total = transport_spends[months.index(month)]
+        _times = monthly_transport_times[month]
+        if _times == 0:
+            continue
+        print(
+            f"In {month}, you took {_times:>2} Grab Transport rides, which cost {_total:>6.2f} SGD, averaging {_total / _times:>6.2f} SGD per ride"
+        )
+
+    ###########################################################################
+    ### Plotting for Grab Transport
+
     # make it 16:9 aspect ratio
     fig, ax = plt.subplots(figsize=(21, 9))
     transport_color = "#1D263B"
     ax.bar(months, transport_spends, color=transport_color)
     ax.set_ylabel("Amount Spent (SGD)")
     ax.set_title("Monthly Spending on Grab Transport")
+    # Set the tick positions
+    ax.set_xticks(range(len(months)))
+    # Set the tick labels
     ax.set_xticklabels(months, rotation=45)
     # add horizontal grid lines
     ax.yaxis.grid(True)
@@ -132,12 +157,17 @@ def plot_and_save_spending_charts(file_path):
     )  # Save the figure as an image file
     plt.close(fig)  # Close the figure to free up memory
 
-    # Plotting for Grab Food
+    ###########################################################################
+    ### Plotting for Grab Food
+
     fig, ax = plt.subplots(figsize=(21, 9))
     food_color = "#4CB963"
     ax.bar(months, food_spends, color=food_color)
     ax.set_ylabel("Amount Spent (SGD)")
     ax.set_title("Monthly Spending on Grab Food")
+    # Set the tick positions
+    ax.set_xticks(range(len(months)))
+    # Set the tick labels
     ax.set_xticklabels(months, rotation=45)
     # add horizontal grid lines
     ax.yaxis.grid(True)
@@ -154,5 +184,5 @@ def plot_and_save_spending_charts(file_path):
 
 
 if __name__ == "__main__":
-    plot_stacked_monthly_spending(MASTER_GRAB_CSV)
-    # plot_and_save_spending_charts(MASTER_GRAB_CSV)
+    # plot_stacked_monthly_spending(MASTER_GRAB_CSV)
+    plot_and_save_spending_charts(MASTER_GRAB_CSV)
