@@ -145,7 +145,7 @@ def plot_and_save_spending_charts(file_path):
     # add horizontal grid lines
     ax.yaxis.grid(True)
     # add polynomial trend line
-    z = np.polyfit(range(len(months)), transport_spends, 10)
+    z = np.polyfit(range(len(months)), transport_spends, 15)
     p = np.poly1d(z)
     ax.plot(months, p(range(len(months))), "r--")
     # label each bar with the amount
@@ -172,7 +172,7 @@ def plot_and_save_spending_charts(file_path):
     # add horizontal grid lines
     ax.yaxis.grid(True)
     # add polynomial trend line
-    z = np.polyfit(range(len(months)), food_spends, 10)
+    z = np.polyfit(range(len(months)), food_spends, 15)
     p = np.poly1d(z)
     ax.plot(months, p(range(len(months))), "r--")
     # label each bar with the amount
