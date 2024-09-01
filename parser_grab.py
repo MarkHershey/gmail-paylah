@@ -77,7 +77,11 @@ def parse_grab_html(html_str: str) -> dict:
         # print(data_lst)
         # raise ValueError("Unknown Grab transaction type")
 
-    money_lst = [i for i in data_lst if i.startswith("S$") or i.startswith("SGD")]
+    money_lst = [
+        i
+        for i in data_lst
+        if i.startswith("S$") or i.startswith("SGD") or i.startswith("RM")
+    ]
     if not money_lst:
         txn_amount = "0.00"
         print(f"[red][ERROR][/red] Could not find transaction amount.")
@@ -86,6 +90,10 @@ def parse_grab_html(html_str: str) -> dict:
     else:
         money = money_lst[0]
         txn_amount = money.split()[-1]
+        if money.startswith("RM"):
+            txn_amount = float(txn_amount) * 0.30  # Convert RM/MYR to SGD
+            print(f"Converted {money} to SGD {txn_amount:.2f}")
+
         txn_amount = f"{float(txn_amount):.2f}"
 
     data_dict = {
