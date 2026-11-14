@@ -7,6 +7,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+# Let temporary quota limits recover using the client's exponential backoff.
+GMAIL_REQUEST_RETRIES = 7
+
 SCOPE_MAP = {
     "readonly": "https://www.googleapis.com/auth/gmail.readonly",
     "compose": "https://www.googleapis.com/auth/gmail.compose",
@@ -178,25 +181,25 @@ def ListMessagesMatchingQuery(service, user_id, query=""):
       returned list contains Message IDs, you must use get with the
       appropriate ID to get the details of a Message.
     """
-    try:
-        response = service.users().messages().list(userId=user_id, q=query).execute()
-        messages = []
-        if "messages" in response:
-            messages.extend(response["messages"])
+    response = (
+        service.users()
+        .messages()
+        .list(userId=user_id, q=query, maxResults=500)
+        .execute(num_retries=GMAIL_REQUEST_RETRIES)
+    )
+    messages = response.get("messages", [])
 
-        while "nextPageToken" in response:
-            page_token = response["nextPageToken"]
-            response = (
-                service.users()
-                .messages()
-                .list(userId=user_id, q=query, pageToken=page_token)
-                .execute()
-            )
-            messages.extend(response["messages"])
+    while "nextPageToken" in response:
+        page_token = response["nextPageToken"]
+        response = (
+            service.users()
+            .messages()
+            .list(userId=user_id, q=query, pageToken=page_token, maxResults=500)
+            .execute(num_retries=GMAIL_REQUEST_RETRIES)
+        )
+        messages.extend(response.get("messages", []))
 
-        return messages
-    except HttpError as err:
-        print("An error occurred: {}".format(err))
+    return messages
 
 
 def ListMessagesWithLabels(service, user_id, label_ids=[]):
@@ -253,12 +256,16 @@ def GetMessage(service, user_id, msg_id):
 
     Returns:
       A Message.
+
+    Raises:
+      HttpError: If a permanent error occurs or temporary errors exhaust retries.
     """
-    try:
-        message = service.users().messages().get(userId=user_id, id=msg_id).execute()
-        return message
-    except HttpError as err:
-        print("An error occurred: {}".format(err))
+    return (
+        service.users()
+        .messages()
+        .get(userId=user_id, id=msg_id)
+        .execute(num_retries=GMAIL_REQUEST_RETRIES)
+    )
 
 
 def GetMimeMessage(service, user_id, msg_id):

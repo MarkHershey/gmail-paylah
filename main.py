@@ -1,8 +1,9 @@
+import argparse
 from pathlib import Path
 
 from gmail_export import export_email_content
 from parser_fave import main as parse_fave
-from parser_grab import main as parse_grab
+from parser_grab import GRAB_RECEIPT_QUERY, main as parse_grab
 from parser_paylah import main as parse_paylah
 
 OUTPUT_DIR = Path("output")
@@ -34,7 +35,7 @@ def fave_main(output_dir: Path = OUTPUT_DIR):
     parse_fave(output_dir=output_dir)
 
 
-def grab_main(output_dir: Path = OUTPUT_DIR):
+def grab_main(output_dir: Path = OUTPUT_DIR, *, receipts_only: bool = False):
     ### Export Grab Emails
     grab_dir = output_dir / "grab"
     grab_dir.mkdir(exist_ok=True, parents=True)
@@ -42,12 +43,24 @@ def grab_main(output_dir: Path = OUTPUT_DIR):
         out_dir=grab_dir,
         sender="no-reply@grab.com",
         use_cache=True,
+        query_filter=GRAB_RECEIPT_QUERY if receipts_only else "",
     )
     ### Parse All Grab Emails
     parse_grab(output_dir=output_dir)
 
 
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Export and parse Grab transactions from Gmail."
+    )
+    parser.add_argument(
+        "--receipts-only",
+        action="store_true",
+        help="Download receipt, merchant-purchase, and cancellation-fee emails only.",
+    )
+    args = parser.parse_args(argv)
+    grab_main(receipts_only=args.receipts_only)
+
+
 if __name__ == "__main__":
-    # fave_main()
-    # paylah_main()
-    grab_main()
+    main()

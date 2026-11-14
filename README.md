@@ -48,7 +48,38 @@ pip install -r requirements.txt
 python main.py
 ```
 
+To download only transaction-related emails from Grab, use:
+
+```bash
+python main.py --receipts-only
+```
+
+This optional Gmail subject filter includes e-receipts, merchant purchases, and
+cancellation fees. The default still exports every message from the sender.
+Existing cached emails are retained and remain available to the parser.
+
 The default outputs are located in the `output` folder.
+
+Grab transaction exports include `txn_currency` (`SGD`, `MYR`, or `THB`).
+`txn_amount` is the original receipt amount in that currency; no exchange-rate
+conversion is applied. Tips and cancellation fees are separate transactions.
+GrabPay and PayLater merchant purchases are included; PayLater bill settlements
+are excluded to avoid counting the same purchases twice.
+The Grab analysis script reports SGD ride and food spending, includes related
+tips and cancellation fees without counting extra trips or orders, and reports
+how many foreign-currency transactions it excludes. Merchant payments and GrabMart
+purchases remain in the exports and are outside these ride/food charts.
+
+Gmail listings use 500 messages per page. Temporary quota and server errors have
+up to seven retries with exponential backoff. Individual malformed or deleted
+messages are reported by ID after the remaining messages have been exported;
+authentication, exhausted quota/server errors, and storage failures stop the run.
+Any export failure prevents transaction report generation.
+
+Rerunning the script reuses valid cached messages and repairs incomplete exports.
+Cache and report files are replaced only after a successful write. A receipt
+that cannot be parsed stops report generation with an error rather than adding
+a zero amount or replacing reports with incomplete results.
 
 ### Step 4: Further analysis
 
@@ -60,11 +91,26 @@ Example code to analyze the Grab transactions:
 python analyze_grab.py
 ```
 
+Spending averages use the last N completed calendar months for both costs and
+transaction counts, excluding the current month. Months with no transactions
+count as zero; insufficient history produces a warning rather than an average.
+
 Example code to analyze the PayLah! transactions:
 
 ```bash
 python analyze_paylah.py
 ```
+
+## Tests
+
+Run the offline regression tests with the project environment activated:
+
+```bash
+python -m unittest discover -v
+```
+
+The tests simulate Gmail responses and retry delays, so they do not contact Gmail
+or consume API quota.
 
 ## Disclaimer
 

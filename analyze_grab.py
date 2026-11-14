@@ -29,7 +29,7 @@ class MonthlyStats:
 
 
 def process_transaction_data(file_path: str) -> MonthlyStats:
-    """Process CSV data and return monthly statistics."""
+    """Return SGD statistics; preserve separate tip costs without adding trips."""
     with open(file_path, newline="") as csvfile:
         reader = csv.DictReader(csvfile)
         transactions = list(reader)
@@ -37,20 +37,34 @@ def process_transaction_data(file_path: str) -> MonthlyStats:
     monthly_cost = defaultdict(lambda: defaultdict(float))
     monthly_transport_trips = defaultdict(int)
     monthly_food_orders = defaultdict(int)
+    foreign_transactions = 0
 
     for txn in transactions:
+        if txn.get("txn_currency", "SGD") != "SGD":
+            foreign_transactions += 1
+            continue
         if not txn["txn_date"]:
             continue
 
         year_month = txn["txn_date"][:7]
         txn_type = txn["txn_type"]
         amount = float(txn["txn_amount"])
-        monthly_cost[year_month][txn_type] += amount
+        cost_type = {
+            "Grab Transport Tip": "Grab Transport",
+            "Grab Transport Fee": "Grab Transport",
+            "Grab Food Tip": "Grab Food",
+        }.get(txn_type, txn_type)
+        monthly_cost[year_month][cost_type] += amount
 
         if txn_type == "Grab Transport":
             monthly_transport_trips[year_month] += 1
         elif txn_type == "Grab Food":
             monthly_food_orders[year_month] += 1
+
+    if foreign_transactions:
+        print(
+            f"SGD analysis excludes {foreign_transactions} foreign-currency transactions; original amounts remain in the exports."
+        )
 
     months = sorted(monthly_cost.keys())
     ride_costs = [monthly_cost[month].get("Grab Transport", 0) for month in months]
@@ -92,28 +106,33 @@ def plot_spending_chart(
 
 
 def print_period_averages(stats: MonthlyStats, months_back: int) -> None:
-    """Print spending averages for a given period, excluding the current month."""
-    today = datetime.today()
-    current_year_month = today.strftime("%Y-%m")
-    current_day = today.day
-    total_days_current_month = (
-        today.replace(day=28) + timedelta(days=4)
-    ).day  # Approximation
+    """Average the last N completed calendar months, including months with no spending."""
+    if months_back <= 0:
+        raise ValueError("months_back must be positive")
 
-    # Exclude the current month from the averages
-    completed_months = [m for m in stats.months if m < current_year_month]
-    selected_months = completed_months[-months_back:]
+    month = datetime.today().replace(day=1)
+    selected_months = []
+    for _ in range(months_back):
+        month = (month - timedelta(days=1)).replace(day=1)
+        selected_months.append(month.strftime("%Y-%m"))
+    selected_months.reverse()
 
-    if len(selected_months) < months_back:
+    if not stats.months or min(stats.months) > selected_months[0]:
         print(
             f"[red]Warning: Not enough completed months to calculate a {months_back}-month average."
         )
         return
 
-    ride_cost = sum(stats.ride_costs[-months_back:]) / months_back
-    ride_trips = sum(stats.transport_trips[m] for m in selected_months) / months_back
-    food_cost = sum(stats.food_costs[-months_back:]) / months_back
-    food_orders = sum(stats.food_orders[m] for m in selected_months) / months_back
+    ride_costs = dict(zip(stats.months, stats.ride_costs))
+    food_costs = dict(zip(stats.months, stats.food_costs))
+    ride_cost = sum(ride_costs.get(m, 0) for m in selected_months) / months_back
+    ride_trips = (
+        sum(stats.transport_trips.get(m, 0) for m in selected_months) / months_back
+    )
+    food_cost = sum(food_costs.get(m, 0) for m in selected_months) / months_back
+    food_orders = (
+        sum(stats.food_orders.get(m, 0) for m in selected_months) / months_back
+    )
 
     print(
         f"[yellow bold]Past {months_back}-Month Average[/yellow bold] ({', '.join(selected_months)}):"
