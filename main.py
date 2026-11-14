@@ -35,7 +35,7 @@ def fave_main(output_dir: Path = OUTPUT_DIR):
     parse_fave(output_dir=output_dir)
 
 
-def grab_main(output_dir: Path = OUTPUT_DIR, *, receipts_only: bool = False):
+def grab_main(output_dir: Path = OUTPUT_DIR, *, receipts_only: bool = True):
     ### Export Grab Emails
     grab_dir = output_dir / "grab"
     grab_dir.mkdir(exist_ok=True, parents=True)
@@ -53,11 +53,19 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Export and parse Grab transactions from Gmail."
     )
-    parser.add_argument(
+    download_mode = parser.add_mutually_exclusive_group()
+    download_mode.add_argument(
         "--receipts-only",
         action="store_true",
-        help="Download receipt, merchant-purchase, and cancellation-fee emails only.",
+        help="Download receipt, merchant-purchase, and cancellation-fee emails only (default).",
     )
+    download_mode.add_argument(
+        "--all-messages",
+        dest="receipts_only",
+        action="store_false",
+        help="Download every email from Grab, including non-transaction messages.",
+    )
+    parser.set_defaults(receipts_only=True)
     args = parser.parse_args(argv)
     grab_main(receipts_only=args.receipts_only)
 

@@ -48,14 +48,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
-To download only transaction-related emails from Grab, use:
+By default, downloads are filtered to Grab e-receipts, merchant purchases, and
+cancellation fees. `--receipts-only` remains available as an explicit option.
+To export every email from Grab, including non-transaction messages, use:
 
 ```bash
-python main.py --receipts-only
+python main.py --all-messages
 ```
 
-This optional Gmail subject filter includes e-receipts, merchant purchases, and
-cancellation fees. The default still exports every message from the sender.
+Use `--all-messages` when auditing email coverage or investigating a new receipt
+subject format that the filter may not recognize yet.
 Existing cached emails are retained and remain available to the parser.
 
 The default outputs are located in the `output` folder.

@@ -123,6 +123,10 @@ class PipelineTests(unittest.TestCase):
                 export.call_args.kwargs["query_filter"], GRAB_RECEIPT_QUERY
             )
             main.grab_main(Path(directory))
+            self.assertEqual(
+                export.call_args.kwargs["query_filter"], GRAB_RECEIPT_QUERY
+            )
+            main.grab_main(Path(directory), receipts_only=False)
             self.assertEqual(export.call_args.kwargs["query_filter"], "")
 
     def test_cli_flag_and_default(self):
@@ -130,6 +134,8 @@ class PipelineTests(unittest.TestCase):
             main.main(["--receipts-only"])
             run.assert_called_with(receipts_only=True)
             main.main([])
+            run.assert_called_with(receipts_only=True)
+            main.main(["--all-messages"])
             run.assert_called_with(receipts_only=False)
 
 
